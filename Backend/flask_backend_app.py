@@ -13,6 +13,8 @@ from flask import Flask, request, jsonify
 import numpy as np
 import pandas as pd
 import joblib
+import os
+from flask_cors import CORS
 
 
 # =======================
@@ -20,23 +22,27 @@ import joblib
 # =======================
 
 app = Flask(__name__)
+CORS(app) # Enable CORS for all routes
 
 
 # =======================
 # 2. LOAD TRAINED ARTIFACTS
 # =======================
 
+# Determine the directory of the current script to load artifacts correctly
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Load trained ML model
-model = joblib.load("final_heart_model.pkl")
+model = joblib.load(os.path.join(BASE_DIR, "final_heart_model.pkl"))
 
 # Load scaler used during training
-scaler = joblib.load("scaler.pkl")
+scaler = joblib.load(os.path.join(BASE_DIR, "scaler.pkl"))
 
 # Load tuned decision threshold
-threshold = joblib.load("decision_threshold.pkl")
+threshold = joblib.load(os.path.join(BASE_DIR, "decision_threshold.pkl"))
 
 # Load saved feature column order (VERY IMPORTANT for correct prediction)
-feature_columns = joblib.load("feature_columns.pkl")
+feature_columns = joblib.load(os.path.join(BASE_DIR, "feature_columns.pkl"))
 
 
 # =======================
@@ -58,19 +64,26 @@ def preprocess_input(raw_data: dict):
     Converts raw patient JSON → encoded numeric feature array
     using SAME preprocessing as training time.
     """
-
     # Convert dictionary → pandas DataFrame (single row)
     df = pd.DataFrame([raw_data])
 
-    # Apply one‑hot encoding (same as training)
+    # 1. ENSURE NUMERIC COLUMNS ARE CORRECT TYPES
+    # This is critical because frontend might send numbers as strings
+    numeric_cols = ['BMI', 'PhysicalHealth', 'MentalHealth', 'SleepTime']
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # 2. Apply one‑hot encoding (same as training)
     df = pd.get_dummies(df)
 
-    # Add any missing columns that existed during training
+    # 3. Add any missing columns that existed during training
+    # This handles categories not present in current input
     for col in feature_columns:
         if col not in df.columns:
             df[col] = 0
 
-    # Ensure exact same column order as training
+    # 4. Ensure exact same column order as training
     df = df[feature_columns]
 
     # Return as NumPy array for model input
@@ -84,50 +97,42 @@ def preprocess_input(raw_data: dict):
 @app.route("/predict", methods=["POST"])
 def predict():
     """
-    Expected JSON input (RAW HUMAN DATA):
-
-    {
-        "BMI": 25,
-        "Smoking": "Yes",
-        "AlcoholDrinking": "No",
-        "Stroke": "No",
-        "PhysicalHealth": 5,
-        "MentalHealth": 2,
-        "DiffWalking": "No",
-        "Sex": "Male",
-        "AgeCategory": "25-29",
-        "Race": "White",
-        "Diabetic": "No",
-        "PhysicalActivity": "Yes",
-        "GenHealth": "Good",
-        "SleepTime": 7,
-        "Asthma": "No",
-        "KidneyDisease": "No",
-        "SkinCancer": "No"
-    }
+    Expected JSON input (RAW HUMAN DATA)
     """
+    try:
+        # Receive JSON body from request
+        raw_json = request.get_json()
+        
+        if not raw_json:
+            return jsonify({"error": "No input data provided"}), 400
 
-    # Receive JSON body from request
-    raw_json = request.get_json()
+        # Convert raw input → processed numeric features
+        processed_features = preprocess_input(raw_json)
 
-    # Convert raw input → processed numeric features
-    processed_features = preprocess_input(raw_json)
+        # Apply SAME scaler used in training
+        processed_features_scaled = scaler.transform(processed_features)
 
-    # Apply SAME scaler used in training
-    processed_features_scaled = scaler.transform(processed_features)
+        # Predict probability of heart disease
+        # model.predict_proba returns [[prob_no, prob_yes]]
+        prob = model.predict_proba(processed_features_scaled)[0][1]
 
-    # Predict probability of heart disease
-    prob = model.predict_proba(processed_features_scaled)[0][1]
+        # Apply tuned medical decision threshold
+        prediction = int(prob >= threshold)
 
-    # Apply tuned medical decision threshold
-    prediction = int(prob >= threshold)
+        # Return structured JSON response
+        return jsonify({
+            "prediction": prediction,
+            "probability": float(prob),
+            "threshold": float(threshold),
+            "status": "success"
+        })
 
-    # Return structured JSON response
-    return jsonify({
-        "prediction": prediction,
-        "probability": float(prob),
-        "threshold": float(threshold)
-    })
+    except Exception as e:
+        print(f"Error during prediction: {str(e)}")
+        return jsonify({
+            "error": str(e),
+            "status": "error"
+        }), 500
 
 
 # =======================
