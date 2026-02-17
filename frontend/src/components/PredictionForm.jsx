@@ -45,12 +45,12 @@ export const PredictionForm = ({ onPredictionComplete }) => {
         setError('');
 
         try {
-            const response = await axios.post('http://127.0.0.1:5000/predict', formData);
+            const response = await axios.post('http://localhost:5000/predict', formData);
             onPredictionComplete(response.data);
         } catch (err) {
             setError(
                 err.response?.data?.error ||
-                'Failed to connect to the prediction service. Please ensure the Flask backend is running on http://127.0.0.1:5000'
+                'Failed to connect to the prediction service. Please ensure the Flask backend is running on http://localhost:5000'
             );
             console.error('Prediction error:', err);
         } finally {

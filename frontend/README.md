@@ -27,7 +27,7 @@ A modern, production-style React web application for AI-powered cardiovascular h
 
 - Node.js (v16 or higher)
 - npm or yarn
-- Flask backend running on `http://127.0.0.1:5000`
+- Flask backend running on `http://localhost:5000`
 
 ## 🛠️ Installation
 
@@ -67,7 +67,7 @@ npm run preview
 
 This frontend connects to a Flask API endpoint:
 
-- **Endpoint**: `POST http://127.0.0.1:5000/predict`
+- **Endpoint**: `POST http://localhost:5000/predict`
 - **Request Body**: JSON with health metrics
 - **Response**: Prediction result with probability and threshold
 
