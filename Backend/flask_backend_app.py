@@ -102,22 +102,29 @@ def predict():
     try:
         # Receive JSON body from request
         raw_json = request.get_json()
+        print(f"\n[DEBUG] Received prediction request: {raw_json}")
         
         if not raw_json:
+            print("[ERROR] No input data provided")
             return jsonify({"error": "No input data provided"}), 400
 
         # Convert raw input → processed numeric features
+        print("[DEBUG] Preprocessing input...")
         processed_features = preprocess_input(raw_json)
+        print(f"[DEBUG] Processed features shape: {processed_features.shape}")
 
         # Apply SAME scaler used in training
+        print("[DEBUG] Scaling features...")
         processed_features_scaled = scaler.transform(processed_features)
 
         # Predict probability of heart disease
-        # model.predict_proba returns [[prob_no, prob_yes]]
+        print("[DEBUG] Running model prediction...")
         prob = model.predict_proba(processed_features_scaled)[0][1]
+        print(f"[DEBUG] Prediction probability: {prob}")
 
         # Apply tuned medical decision threshold
         prediction = int(prob >= threshold)
+        print(f"[DEBUG] Final prediction: {prediction} (threshold: {threshold})")
 
         # Return structured JSON response
         return jsonify({
@@ -128,10 +135,15 @@ def predict():
         })
 
     except Exception as e:
-        print(f"Error during prediction: {str(e)}")
+        import traceback
+        error_msg = str(e)
+        full_traceback = traceback.format_exc()
+        print(f"[ERROR] Exception during prediction: {error_msg}")
+        print(full_traceback)
         return jsonify({
-            "error": str(e),
-            "status": "error"
+            "error": error_msg,
+            "status": "error",
+            "details": "Check server logs for traceback"
         }), 500
 
 
