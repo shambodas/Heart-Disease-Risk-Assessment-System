@@ -44,13 +44,16 @@ export const PredictionForm = ({ onPredictionComplete }) => {
         setLoading(true);
         setError('');
 
+        // Use environment variable for API URL, fallback to localhost for development
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
         try {
-            const response = await axios.post('http://localhost:5000/predict', formData);
+            const response = await axios.post(`${API_BASE_URL}/predict`, formData);
             onPredictionComplete(response.data);
         } catch (err) {
             setError(
                 err.response?.data?.error ||
-                'Failed to connect to the prediction service. Please ensure the Flask backend is running on http://localhost:5000'
+                `Failed to connect to the prediction service at ${API_BASE_URL}. Please ensure the backend is running and accessible.`
             );
             console.error('Prediction error:', err);
         } finally {
