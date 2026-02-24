@@ -6,7 +6,7 @@ import { Button } from './ui/Button';
 export const BMICalculator = ({ onCalculate, onClose }) => {
     const [unit, setUnit] = useState('metric'); // 'metric' or 'imperial'
     const [metric, setMetric] = useState({ height: '', weight: '' });
-    const [imperial, setImperial] = useState({ ft: '', in: '', lb: '' });
+    const [imperial, setImperial] = useState({ ft: '', in: '', kg: '' });
     const [bmi, setBmi] = useState(null);
 
     const calculateBMI = () => {
@@ -19,9 +19,10 @@ export const BMICalculator = ({ onCalculate, onClose }) => {
             }
         } else {
             h = (parseFloat(imperial.ft) * 12) + (parseFloat(imperial.in) || 0); // total inches
-            w = parseFloat(imperial.lb);
-            if (h > 0 && w > 0) {
-                calculatedBmi = (w / (h * h)) * 703;
+            const weightKg = parseFloat(imperial.kg);
+            if (h > 0 && weightKg > 0) {
+                const heightInMeters = h * 0.0254;
+                calculatedBmi = weightKg / (heightInMeters * heightInMeters);
             }
         }
 
@@ -77,7 +78,7 @@ export const BMICalculator = ({ onCalculate, onClose }) => {
                     onClick={() => setUnit('imperial')}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${unit === 'imperial' ? 'bg-white text-medical-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                    Imperial (ft/lb)
+                    Imperial (ft/kg)
                 </button>
             </div>
 
@@ -118,11 +119,11 @@ export const BMICalculator = ({ onCalculate, onClose }) => {
                             />
                         </div>
                         <Input
-                            label="Weight (lb)"
+                            label="Weight (kg)"
                             type="number"
-                            value={imperial.lb}
-                            onChange={(e) => setImperial({ ...imperial, lb: e.target.value })}
-                            placeholder="e.g. 150"
+                            value={imperial.kg}
+                            onChange={(e) => setImperial({ ...imperial, kg: e.target.value })}
+                            placeholder="e.g. 70"
                         />
                     </div>
                 )}
