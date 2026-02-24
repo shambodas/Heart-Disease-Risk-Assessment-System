@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Card } from './ui/Card';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
+import { BMICalculator } from './BMICalculator';
 
 export const PredictionForm = ({ onPredictionComplete }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showBMICalc, setShowBMICalc] = useState(false);
 
     const [formData, setFormData] = useState({
         BMI: '',
@@ -171,19 +173,28 @@ export const PredictionForm = ({ onPredictionComplete }) => {
                                     Physical Health Metrics
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <Input
-                                        label="Body Mass Index (BMI)"
-                                        name="BMI"
-                                        type="number"
-                                        value={formData.BMI}
-                                        onChange={handleChange}
-                                        placeholder="e.g., 25.5"
-                                        helperText="Weight (kg) / Height (m)²"
-                                        required
-                                        min="10"
-                                        max="100"
-                                        step="0.1"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            label="Body Mass Index (BMI)"
+                                            name="BMI"
+                                            type="number"
+                                            value={formData.BMI}
+                                            onChange={handleChange}
+                                            placeholder="e.g., 25.5"
+                                            helperText="Weight (kg) / Height (m)²"
+                                            required
+                                            min="10"
+                                            max="100"
+                                            step="0.1"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowBMICalc(true)}
+                                            className="absolute top-0 right-0 text-xs font-medium text-medical-600 hover:text-medical-700 underline transition-colors"
+                                        >
+                                            Calculate BMI
+                                        </button>
+                                    </div>
                                     <Input
                                         label="Physical Health (Poor Days)"
                                         name="PhysicalHealth"
@@ -356,6 +367,27 @@ export const PredictionForm = ({ onPredictionComplete }) => {
                     </Card>
                 </motion.div>
             </div>
+            {/* BMI Calculator Modal */}
+            <AnimatePresence>
+                {showBMICalc && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0"
+                            onClick={() => setShowBMICalc(false)}
+                        />
+                        <BMICalculator
+                            onClose={() => setShowBMICalc(false)}
+                            onCalculate={(bmi) => {
+                                setFormData(prev => ({ ...prev, BMI: bmi }));
+                                setShowBMICalc(false);
+                            }}
+                        />
+                    </div>
+                )}
+            </AnimatePresence>
         </section>
     );
 };
